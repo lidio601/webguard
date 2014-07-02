@@ -1,0 +1,8 @@
+googlebot.com
+crawler
+robots.txt
+favicon.ico
+sonic
+192.168.0.
+.css
+

@@ -1,0 +1,10 @@
+ 404 
+220.194.46.2
+/jmx-console
+coolhousing.net
+GET //
+sshd[
+": Invalid user "
+": User root from "
+"not allowed because listed in DenyUsers"
+
