@@ -1,3 +1,6 @@
+Invalid user
+User root from
+not allowed because listed in DenyUsers
  404 
 220.194.46.2
 /jmx-console
@@ -7,4 +10,3 @@ sshd[
 ": Invalid user "
 ": User root from "
 "not allowed because listed in DenyUsers"
-

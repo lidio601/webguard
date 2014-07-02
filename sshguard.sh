@@ -11,14 +11,20 @@ TEMP=$(tempfile)
 TEMP2=$(tempfile)
 TEMP3=$(tempfile)
 MAILLOG=$(tempfile)
-STATUSFILE='/home/root/webguard/status_ssh_guard'
+STATUSFILE='/root/webguard/status_ssh_guard'
 BANTABLEFILE='/root/webguard/ban.tbl'
-RECIDIVI='/home/root/webguard/recidivi.log'
+RECIDIVI='/root/webguard/recidivi.log'
+
+if [ -f $MAILLOG ]; then
+	rm $MAILLOG
+fi
 
 # Carica lo stato dal file
 if [ -f "$STATUSFILE" ]; then
 	. "$STATUSFILE"
 	#echo "Carico le linee precedenti: $LINEPOS"
+else
+	LINEPOS=0
 fi
 
 # Sanity check
@@ -41,25 +47,55 @@ if [ $LN -lt $LINEPOS ]; then
 	LINEPOS=0
 fi
 
+# Controlla la tabella dei ban
+if [ -f "$BANTABLEFILE" ]; then
+        NEWTABLE=""
+        WRITETOFILE=0
+        IFS=$'\n'
+
+        # Controlla ciascun record della tabella
+        for i in $(sort -n -k2 -r "$BANTABLEFILE" | uniq -f1); do
+                        EXPIRY=${i:0:10}
+                        IP=${i:11:16}
+
+                        # Se la data attuale � maggiore del campo EXPIRY il ban � scaduto
+                        if [ "$NOW" -gt "$EXPIRY" ]; then
+                                "$UNBANCOMMAND" "$IP" >>$MAILLOG
+                                        WRITETOFILE=1
+                                else
+                                        NEWTABLE="$NEWTABLE$i\n"
+                                fi
+        done
+
+        # I record non rimossi vengono riscritti nella tabella (se � stata modificata)
+        if [ "$WRITETOFILE" == "1" ]; then
+                echo -e "$NEWTABLE" > "$BANTABLEFILE"
+        fi
+fi
+
 # Calcola la differenza
 let "LINES = LN - LINEPOS"
 #echo "prendo le ultime $LINES righe"
+#echo "Controllo le ultime $LINES linee"
 
 # Restituisce le nuove linee
 if [ $LINES -gt 0 ]; then
 	#echo "nuove linee"
 	NEWRECORDS=""
 	
-	tail -n $LINES $LOGFILE | grep -v "CRON" | grep -v "su" | grep -v "82.115.165.10" | grep -v "smbd"| grep -v "Accepted" | grep -v "session opened for user fabio" >$TEMP
+	tail -n $LINES $LOGFILE | grep -v "CRON" | grep -v "su" | grep -v "smbd"| grep -v "Accepted" | grep -v "session opened for user fabio" >$TEMP
 	cat $TEMP | grep "Invalid user" | cut -d"]" -f2- | cut -c3- | uniq | cut -d" " -f5 | uniq | sort >$TEMP2
 	cat $TEMP | grep "not allowed because" | cut -d"]" -f2- | cut -c3- | uniq | cut -d" " -f4 | uniq | sort >>$TEMP2
 	cat $TEMP2 | sort | uniq >$TEMP3
+	#echo "trovati `cat $TEMP3 | wc -l` indirizzi da bannare"
 	
 	for ip in `cat $TEMP3`; do
 		echo "$ip" >>$RECIDIVI
+		
 		if [ `cat $BANTABLEFILE | grep -c $ip` -gt 0 ]; then
 			echo "salto $ip: gia bannato" >>$MAILLOG
 		else
+			
 			#Calcolo il numero di ban eseguiti per questo host
 			let quanti=`grep -c 193.238.28.222 $BANTABLEFILE`+1
 			let "tempo = BANTIME*quanti"
@@ -103,7 +139,7 @@ if [ -f $MAILLOG ]; then
     if [ "$MAILLOG" == "" ]; then
       echo "" >/dev/null
     else
-      cat $MAILLOG | /usr/bin/mail -s "SSHGuard: filter IP" fabio.cigliano@gmail.com
+      cat $MAILLOG | /usr/bin/mail -s "SSHGuard: filter IP" root
     fi
   fi
   #rm $MAILLOG

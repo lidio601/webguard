@@ -121,13 +121,13 @@ if [ "$NEWRECORDS" != "" ]; then
 fi
 
 if [ -f $MAILLOG ]; then
-#  clinee=`wc -l $MAILLOG | cut -d' ' -f1`
-#  if [ "$clinee" -gt "0" ]; then
-#    if [ "$MAILLOG" == "" ]; then
-#      echo "" >/dev/null
-#    else
-#      cat $MAILLOG | /usr/bin/mail -s "WebGuard: filter IP" fabio.cigliano@gmail.com
-#    fi
-#  fi
+  clinee=`wc -l $MAILLOG | cut -d' ' -f1`
+  if [ "$clinee" -gt "0" ]; then
+    if [ "$MAILLOG" == "" ]; then
+      echo "" >/dev/null
+    else
+      cat $MAILLOG | /usr/bin/mail -s "WebGuard: filter IP" fabio.cigliano@gmail.com
+    fi
+  fi
   rm $MAILLOG
 fi
